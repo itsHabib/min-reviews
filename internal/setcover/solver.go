@@ -2,41 +2,53 @@ package setcover
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 )
 
-type Solver[T comparable] struct {
+type Solver struct {
 	bestSize   int
-	chk        []T
-	solutions  [][]T
-	solTracker map[T]struct{}
-	universe   Universe[T]
+	chk        []string
+	solutions  [][]string
+	solTracker map[string]struct{}
+	universe   Universe
 }
 
-func NewSolver[T comparable](chk []T, universe Universe[T]) (*Solver[T], error) {
+func NewSolver(chk []string, universe Universe) (*Solver, error) {
 	if universe == nil {
 		return nil, fmt.Errorf("unable to init new runner due to nil universe")
 	}
 
-	return &Solver[T]{chk: chk, universe: universe}, nil
+	return &Solver{
+		chk:        chk,
+		universe:   universe,
+		solTracker: make(map[string]struct{}),
+	}, nil
 }
 
-func (s *Solver[T]) MinCover() [][]T {
-	s.minCover([]T{}, 0)
+func (s *Solver) MinCover() [][]string {
+	s.minCover([]string{}, 0)
 
 	return s.solutions
 }
 
-func (s *Solver[T]) minCover(current []T, idx int) {
-	if len(current) > s.bestSize && s.bestSize != 0 || idx == len(s.chk) {
+func (s *Solver) minCover(current []string, idx int) {
+	if (len(current) > s.bestSize && s.bestSize != 0) || idx == len(s.chk) {
 		return
 	}
 
 	if s.universe.Covers(current) {
-		if len(current) < s.bestSize {
+		key := currentKey(current)
+		if _, ok := s.solTracker[key]; ok {
+			return
+		}
+
+		if s.bestSize == 0 || len(current) < s.bestSize {
 			s.bestSize = len(current)
-			s.solutions = [][]T{}
+			s.solutions = [][]string{}
 		}
 		s.solutions = append(s.solutions, copySlice(current))
+		s.solTracker[key] = struct{}{}
 	}
 
 	with := copySlice(current)
@@ -45,12 +57,24 @@ func (s *Solver[T]) minCover(current []T, idx int) {
 	s.minCover(with, idx+1)
 }
 
-type Universe[T comparable] interface {
-	Covers([]T) bool
+type Universe interface {
+	Covers([]string) bool
 }
 
-func copySlice[T any](slice []T) []T {
-	cp := make([]T, len(slice))
+func copySlice[string any](slice []string) []string {
+	cp := make([]string, len(slice))
 	copy(cp, slice)
 	return cp
+}
+
+func currentKey(current []string) string {
+	sort.Slice(current, func(i, j int) bool {
+		return current[i] < current[j]
+	})
+	var b strings.Builder
+	for i := range current {
+		b.WriteString(current[i])
+	}
+
+	return b.String()
 }
