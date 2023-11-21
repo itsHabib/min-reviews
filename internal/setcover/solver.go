@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Solver holds various fields to solve the set cover problem given
 type Solver struct {
 	bestSize   int
 	chk        []string
@@ -14,6 +15,12 @@ type Solver struct {
 	universe   Universe
 }
 
+// NewSolver returns a new Solver instance.
+// Usage example:
+//
+//	solver, err := setcover.NewSolver(checks, universe)
+//	handleErr(err)
+//	solutions := solver.MinCover()
 func NewSolver(chk []string, universe Universe) (*Solver, error) {
 	if universe == nil {
 		return nil, fmt.Errorf("unable to init new runner due to nil universe")
@@ -57,6 +64,8 @@ func (s *Solver) minCover(current []string, idx int) {
 	s.minCover(with, idx+1)
 }
 
+// Universe is an interface that defines a Covers method so callers
+// can supply their own implementation of how a subset covers a universe.
 type Universe interface {
 	Covers([]string) bool
 }
